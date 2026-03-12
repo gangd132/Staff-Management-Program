@@ -10,28 +10,33 @@ files:
 
 npmRebuild: true
 
+# Windows 빌드 설정
 win:
   target:
-    - nsis
-  icon: build/icon.ico
+    # portable: 설치 불필요, exe 하나로 실행 (USB 배포에 최적, macOS에서도 Wine 없이 빌드 가능)
+    - target: portable
+      arch:
+        - x64
+    # nsis: 설치 마법사형 인스톨러 (Windows에서만 빌드 권장)
+    - target: nsis
+      arch:
+        - x64
 
+# NSIS 설치 마법사 설정
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  shortcutName: 직원근무관리
+  installerLanguages:
+    - ko
 
+# macOS 빌드 설정
 mac:
   target:
     - dmg
-  icon: build/icon.icns
   category: public.app-category.business
-
-dmg:
-  background: build/dmg-background.png
-  window:
-    width: 540
-    height: 380
 
 publish:
   provider: github

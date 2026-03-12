@@ -1,0 +1,37 @@
+name: Windows EXE 빌드
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # 수동 실행 버튼
+
+jobs:
+  build-windows:
+    runs-on: windows-latest  # Windows 서버에서 빌드 (네이티브 모듈 호환)
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 패키지 설치 (네이티브 모듈 포함)
+        run: npm install
+
+      - name: Windows EXE 빌드
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 빌드 결과물 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            release/*.exe
+            release/*.yml
+          retention-days: 30
