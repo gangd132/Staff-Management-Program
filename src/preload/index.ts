@@ -84,6 +84,33 @@ const api = {
 
   app: {
     version: (): Promise<IPCResult<string>> => ipcRenderer.invoke('app:version')
+  },
+
+  // 자동 업데이트 API
+  updater: {
+    // 업데이트 확인 요청
+    check: (): Promise<IPCResult<void>> => ipcRenderer.invoke('update:check'),
+    // 업데이트 다운로드 시작
+    download: (): Promise<IPCResult<void>> => ipcRenderer.invoke('update:download'),
+    // 앱 재시작 후 설치
+    install: (): Promise<void> => ipcRenderer.invoke('update:install'),
+    // 메인 → 렌더러 업데이트 이벤트 구독
+    on: (
+      channel:
+        | 'update:checking'
+        | 'update:available'
+        | 'update:not-available'
+        | 'update:download-progress'
+        | 'update:downloaded'
+        | 'update:error',
+      listener: (data?: unknown) => void
+    ) => {
+      ipcRenderer.on(channel, (_event, data) => listener(data))
+    },
+    // 이벤트 구독 해제
+    off: (channel: string) => {
+      ipcRenderer.removeAllListeners(channel)
+    }
   }
 }
 

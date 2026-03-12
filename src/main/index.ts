@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { initDatabase, closeDatabase } from './database'
 import { registerIpcHandlers } from './ipc'
+import { setupAutoUpdater } from './updater'
 
 // 단일 인스턴스 보장
 const gotTheLock = app.requestSingleInstanceLock()
@@ -55,6 +56,11 @@ app.whenReady().then(() => {
   registerIpcHandlers()
 
   createMainWindow()
+
+  // 자동 업데이트 설정 (프로덕션 빌드에서만 동작)
+  if (!process.env['ELECTRON_RENDERER_URL']) {
+    setupAutoUpdater(mainWindow!)
+  }
 
   // macOS: 독 아이콘 클릭 시 창 재생성
   app.on('activate', () => {

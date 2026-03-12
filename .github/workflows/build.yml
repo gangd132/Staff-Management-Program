@@ -1,14 +1,17 @@
-name: Windows EXE 빌드
+name: Windows EXE 빌드 & 릴리즈
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:  # 수동 실행 버튼
+    tags:
+      - 'v*'          # v1.0.0 형태의 태그가 푸시될 때만 실행
+  workflow_dispatch:   # GitHub 웹에서 수동 실행도 가능
 
 jobs:
   build-windows:
     runs-on: windows-latest  # Windows 서버에서 빌드 (네이티브 모듈 호환)
+
+    permissions:
+      contents: write       # GitHub Release 생성 권한
 
     steps:
       - name: 코드 체크아웃
@@ -22,12 +25,13 @@ jobs:
       - name: 패키지 설치 (네이티브 모듈 포함)
         run: npm install
 
-      - name: Windows EXE 빌드
+      - name: Windows EXE 빌드 & GitHub Release 자동 생성
         run: npm run build:win
         env:
+          # electron-builder가 GitHub Release에 자동 업로드하는 데 필요
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 빌드 결과물 업로드
+      - name: 빌드 결과물 업로드 (아카이브용)
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer

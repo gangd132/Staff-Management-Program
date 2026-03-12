@@ -7,9 +7,23 @@ import {
   Trash2,
   Info,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  Download,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react'
 import type { AppConfig } from '../../../shared/types'
+
+// 업데이트 상태 타입
+type UpdateStatus =
+  | 'idle'           // 대기
+  | 'checking'       // 확인 중
+  | 'available'      // 새 버전 있음
+  | 'not-available'  // 최신 버전
+  | 'downloading'    // 다운로드 중
+  | 'downloaded'     // 다운로드 완료 (설치 대기)
+  | 'error'          // 오류
 
 interface SettingsProps {
   onConfigUpdate: (config: AppConfig) => void
@@ -38,6 +52,14 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
   const [appVersion, setAppVersion] = useState('')
   const [isSavingBiz, setIsSavingBiz] = useState(false)
 
+  // 업데이트 상태
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle')
+  const [updateInfo, setUpdateInfo] = useState<{
+    version?: string
+    percent?: number
+    error?: string
+  }>({})
+
   // PIN 관련
   const [pinMode, setPinMode] = useState<'view' | 'change' | 'remove'>('view')
   const [newPin, setNewPin] = useState('')
@@ -51,6 +73,49 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
     window.api.app.version().then((r) => {
       if (r.success) setAppVersion(r.data ?? '')
     })
+
+    // 업데이트 이벤트 구독
+    window.api.updater.on('update:checking', () => {
+      setUpdateStatus('checking')
+    })
+    window.api.updater.on('update:available', (data) => {
+      const info = data as { version: string }
+      setUpdateStatus('available')
+      setUpdateInfo({ version: info?.version })
+    })
+    window.api.updater.on('update:not-available', (data) => {
+      const info = data as { version: string }
+      setUpdateStatus('not-available')
+      setUpdateInfo({ version: info?.version })
+    })
+    window.api.updater.on('update:download-progress', (data) => {
+      const progress = data as { percent: number }
+      setUpdateStatus('downloading')
+      setUpdateInfo((prev) => ({ ...prev, percent: progress?.percent }))
+    })
+    window.api.updater.on('update:downloaded', (data) => {
+      const info = data as { version: string }
+      setUpdateStatus('downloaded')
+      setUpdateInfo({ version: info?.version })
+    })
+    window.api.updater.on('update:error', (data) => {
+      const err = data as { message: string }
+      setUpdateStatus('error')
+      setUpdateInfo({ error: err?.message })
+    })
+
+    return () => {
+      // 컴포넌트 언마운트 시 리스너 해제
+      const channels = [
+        'update:checking',
+        'update:available',
+        'update:not-available',
+        'update:download-progress',
+        'update:downloaded',
+        'update:error'
+      ]
+      channels.forEach((ch) => window.api.updater.off(ch))
+    }
   }, [])
 
   const loadConfig = async () => {
@@ -59,6 +124,24 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
       setConfig(result.data)
       setBizName(result.data.bizName)
     }
+  }
+
+  // 업데이트 확인
+  const handleCheckUpdate = async () => {
+    setUpdateStatus('checking')
+    setUpdateInfo({})
+    await window.api.updater.check()
+  }
+
+  // 업데이트 다운로드
+  const handleDownloadUpdate = async () => {
+    setUpdateStatus('downloading')
+    await window.api.updater.download()
+  }
+
+  // 업데이트 설치 (앱 재시작)
+  const handleInstallUpdate = async () => {
+    await window.api.updater.install()
   }
 
   // 사업장명 저장
@@ -324,14 +407,96 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
           </div>
         </SettingSection>
 
-        {/* 앱 정보 */}
-        <SettingSection title="앱 정보">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+        {/* 앱 정보 & 업데이트 */}
+        <SettingSection title="앱 정보 및 업데이트">
+          {/* 버전 정보 */}
+          <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
             <Info size={14} className="text-gray-400" />
             <span>직원 근무 관리 Desktop Edition</span>
             <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
               v{appVersion || '1.0.0'}
             </span>
+          </div>
+
+          {/* 업데이트 상태 메시지 */}
+          {updateStatus === 'not-available' && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 border border-green-100 px-4 py-3 text-sm text-green-700">
+              <CheckCircle2 size={16} className="shrink-0" />
+              <span>현재 최신 버전입니다 (v{updateInfo.version})</span>
+            </div>
+          )}
+          {updateStatus === 'available' && (
+            <div className="mb-3 flex items-center justify-between rounded-lg bg-blue-50 border border-blue-100 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-blue-700">
+                <Download size={16} className="shrink-0" />
+                <span>새 버전이 있습니다 — v{updateInfo.version}</span>
+              </div>
+              <button
+                onClick={handleDownloadUpdate}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+              >
+                <Download size={13} />
+                다운로드
+              </button>
+            </div>
+          )}
+          {updateStatus === 'downloading' && (
+            <div className="mb-3 rounded-lg bg-blue-50 border border-blue-100 px-4 py-3">
+              <div className="mb-2 flex items-center justify-between text-sm text-blue-700">
+                <span className="flex items-center gap-2">
+                  <RefreshCw size={14} className="animate-spin" />
+                  다운로드 중...
+                </span>
+                <span className="font-medium">{updateInfo.percent ?? 0}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-blue-200">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${updateInfo.percent ?? 0}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {updateStatus === 'downloaded' && (
+            <div className="mb-3 flex items-center justify-between rounded-lg bg-green-50 border border-green-100 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <CheckCircle2 size={16} className="shrink-0" />
+                <span>v{updateInfo.version} 다운로드 완료. 지금 설치할까요?</span>
+              </div>
+              <button
+                onClick={handleInstallUpdate}
+                className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 transition-colors"
+              >
+                지금 설치
+              </button>
+            </div>
+          )}
+          {updateStatus === 'error' && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+              <AlertCircle size={16} className="shrink-0" />
+              <span className="break-all">업데이트 오류: {updateInfo.error}</span>
+            </div>
+          )}
+
+          {/* 업데이트 확인 버튼 */}
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-700">업데이트 확인</p>
+              <p className="text-xs text-gray-400">GitHub에서 최신 버전을 확인합니다</p>
+            </div>
+            <button
+              onClick={handleCheckUpdate}
+              disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+              className="flex items-center gap-2 rounded-lg bg-white border border-gray-200
+                         px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 shadow-sm
+                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw
+                size={14}
+                className={updateStatus === 'checking' ? 'animate-spin' : ''}
+              />
+              {updateStatus === 'checking' ? '확인 중...' : '업데이트 확인'}
+            </button>
           </div>
         </SettingSection>
       </div>
