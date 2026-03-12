@@ -1,0 +1,46 @@
+{
+  "name": "staff-management-program",
+  "version": "1.0.0",
+  "description": "직원 근무 관리 데스크탑 앱",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "postinstall": "node node_modules/electron/install.js && electron-rebuild -f -w better-sqlite3",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac"
+  },
+  "dependencies": {
+    "@fullcalendar/core": "^6.1.11",
+    "@fullcalendar/daygrid": "^6.1.11",
+    "@fullcalendar/interaction": "^6.1.11",
+    "@fullcalendar/react": "^6.1.11",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "date-fns": "^3.3.1",
+    "lucide-react": "^0.330.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.2",
+    "xlsx": "^0.18.5",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.57",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.0.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.3"
+  }
+}

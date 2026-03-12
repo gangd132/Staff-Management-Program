@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FullCalendar 커스텀 스타일 */
+@layer components {
+  .fc .fc-toolbar-title {
+    @apply text-lg font-semibold text-gray-800;
+  }
+  .fc .fc-button {
+    @apply bg-indigo-600 border-indigo-600 text-white;
+  }
+  .fc .fc-button:hover {
+    @apply bg-indigo-700 border-indigo-700;
+  }
+  .fc .fc-button-active {
+    @apply bg-indigo-800 border-indigo-800;
+  }
+  .fc .fc-day-today {
+    @apply bg-indigo-50 !important;
+  }
+  .fc .fc-event {
+    @apply cursor-pointer rounded-sm text-xs;
+  }
+  .fc-daygrid-event-dot {
+    display: none;
+  }
+
+  /* 날짜 셀 내부 커스텀 레이아웃 */
+  .fc .fc-daygrid-day-frame {
+    min-height: 80px;
+  }
+  .fc .fc-daygrid-day-top {
+    /* 날짜 숫자 + 색점이 함께 들어가도록 flex 해제 */
+    display: block;
+  }
+  .fc .fc-daygrid-day-events {
+    /* 이벤트 영역 최소화 (이벤트 없음) */
+    min-height: 0 !important;
+  }
+  /* 오늘 날짜 셀 배경만 강조 (숫자 색상은 dayCellContent에서 제어) */
+  .fc .fc-day-today {
+    background-color: #eef2ff !important;
+  }
+  /* 날짜 클릭 커서 */
+  .fc .fc-daygrid-day {
+    cursor: pointer;
+  }
+  .fc .fc-daygrid-day:hover .fc-daygrid-day-frame {
+    @apply bg-indigo-50 transition-colors;
+  }
+}
+
+/* 스크롤바 커스텀 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* 드래그 선택 방지 (데스크탑 앱 느낌) */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+}
