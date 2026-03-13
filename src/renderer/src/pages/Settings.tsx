@@ -49,6 +49,8 @@ function SettingSection({
 export default function Settings({ onConfigUpdate }: SettingsProps) {
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [bizName, setBizName] = useState('')
+  const [breakDeductionEnabled, setBreakDeductionEnabled] = useState(true)
+  const [isSavingBreakDeduction, setIsSavingBreakDeduction] = useState(false)
   const [appVersion, setAppVersion] = useState('')
   const [isSavingBiz, setIsSavingBiz] = useState(false)
 
@@ -123,7 +125,30 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
     if (result.success && result.data) {
       setConfig(result.data)
       setBizName(result.data.bizName)
+      setBreakDeductionEnabled(result.data.breakDeductionEnabled)
     }
+  }
+
+  // 근무시간 자동 공제 on/off 저장
+  const handleToggleBreakDeduction = async (enabled: boolean) => {
+    setBreakDeductionEnabled(enabled)
+    setIsSavingBreakDeduction(true)
+
+    const result = await window.api.config.update({
+      breakDeductionEnabled: enabled
+    })
+
+    if (result.success && result.data) {
+      setConfig(result.data)
+      onConfigUpdate(result.data)
+      setBreakDeductionEnabled(result.data.breakDeductionEnabled)
+    } else {
+      // 저장 실패 시 기존 설정값으로 복구
+      setBreakDeductionEnabled(config?.breakDeductionEnabled ?? true)
+      alert(`설정 저장 실패: ${result.error}`)
+    }
+
+    setIsSavingBreakDeduction(false)
   }
 
   // 업데이트 확인
@@ -262,6 +287,37 @@ export default function Settings({ onConfigUpdate }: SettingsProps) {
             >
               {isSavingBiz ? '저장 중...' : '저장'}
             </button>
+          </div>
+        </SettingSection>
+
+        {/* 근무시간 자동 공제 설정 */}
+        <SettingSection title="근무시간 설정">
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-gray-700">휴게시간 자동 공제</p>
+              <p className="text-xs text-gray-400">
+                4시간 이상 30분, 8시간 이상 1시간 자동 공제
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleToggleBreakDeduction(!breakDeductionEnabled)}
+                disabled={isSavingBreakDeduction}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                  ${breakDeductionEnabled ? 'bg-indigo-600' : 'bg-gray-300'}
+                  ${isSavingBreakDeduction ? 'opacity-60 cursor-not-allowed' : ''}`}
+                title="휴게시간 자동 공제 on/off"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                    ${breakDeductionEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                />
+              </button>
+              <span className="text-sm font-medium text-gray-600 min-w-[2.5rem]">
+                {breakDeductionEnabled ? 'ON' : 'OFF'}
+              </span>
+            </div>
           </div>
         </SettingSection>
 

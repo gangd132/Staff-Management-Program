@@ -1,10 +1,15 @@
 import { getDb } from '../index'
 import type { Attendance } from '../../../shared/types'
 import { employeeRepository } from './employee'
+import { configRepository } from './config'
 import { randomUUID } from 'crypto'
 
 // 근무시간 계산 + 휴게시간 자동 공제
-export function calculateHoursWorked(startTime: string, endTime: string): number {
+export function calculateHoursWorked(
+  startTime: string,
+  endTime: string,
+  breakDeductionEnabled = true
+): number {
   const [startH, startM] = startTime.split(':').map(Number)
   const [endH, endM] = endTime.split(':').map(Number)
 
@@ -18,12 +23,14 @@ export function calculateHoursWorked(startTime: string, endTime: string): number
 
   const totalHours = (endMinutes - startMinutes) / 60
 
-  // 휴게시간 자동 공제 (근로기준법 기준)
+  // 휴게시간 자동 공제 (설정에서 off 가능)
   let restHours = 0
-  if (totalHours >= 8) {
-    restHours = 1
-  } else if (totalHours >= 4) {
-    restHours = 0.5
+  if (breakDeductionEnabled) {
+    if (totalHours >= 8) {
+      restHours = 1
+    } else if (totalHours >= 4) {
+      restHours = 0.5
+    }
   }
 
   return Math.max(0, totalHours - restHours)
@@ -101,7 +108,13 @@ export const attendanceRepository = {
   }): Attendance {
     const db = getDb()
     const now = new Date().toISOString()
-    const hoursWorked = calculateHoursWorked(data.startTime, data.endTime)
+    const appConfig = configRepository.get()
+    const breakDeductionEnabled = appConfig?.breakDeductionEnabled ?? true
+    const hoursWorked = calculateHoursWorked(
+      data.startTime,
+      data.endTime,
+      breakDeductionEnabled
+    )
 
     // 기존 레코드 확인
     const existing = db

@@ -42,7 +42,14 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'config:update',
-    (_event, data: { bizName?: string; pin?: string | null }) => {
+    (
+      _event,
+      data: {
+        bizName?: string
+        pin?: string | null
+        breakDeductionEnabled?: boolean
+      }
+    ) => {
       try {
         let pinToSave: string | null | undefined = undefined
 
@@ -51,7 +58,13 @@ export function registerIpcHandlers(): void {
           pinToSave = data.pin ? bcrypt.hashSync(data.pin, 10) : null
         }
 
-        return ok(configRepository.update({ bizName: data.bizName, pin: pinToSave }))
+        return ok(
+          configRepository.update({
+            bizName: data.bizName,
+            pin: pinToSave,
+            breakDeductionEnabled: data.breakDeductionEnabled
+          })
+        )
       } catch (e) {
         return fail(String(e))
       }
@@ -150,7 +163,9 @@ export function registerIpcHandlers(): void {
     'attendance:calcHours',
     (_event, startTime: string, endTime: string) => {
       try {
-        return ok(calculateHoursWorked(startTime, endTime))
+        const appConfig = configRepository.get()
+        const breakDeductionEnabled = appConfig?.breakDeductionEnabled ?? true
+        return ok(calculateHoursWorked(startTime, endTime, breakDeductionEnabled))
       } catch (e) {
         return fail(String(e))
       }

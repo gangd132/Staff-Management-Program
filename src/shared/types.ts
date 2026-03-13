@@ -4,6 +4,7 @@ export interface AppConfig {
   id: number
   bizName: string
   pin: string | null
+  breakDeductionEnabled: boolean
   createdAt: string
 }
 

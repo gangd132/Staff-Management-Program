@@ -18,6 +18,7 @@ const api = {
     update: (data: {
       bizName?: string
       pin?: string | null
+      breakDeductionEnabled?: boolean
     }): Promise<IPCResult<AppConfig>> => ipcRenderer.invoke('config:update', data),
     verifyPin: (pin: string): Promise<IPCResult<boolean>> =>
       ipcRenderer.invoke('config:verifyPin', pin)

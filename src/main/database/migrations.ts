@@ -43,7 +43,7 @@ const INITIAL_SCHEMA = `
   );
 `
 
-const CURRENT_SCHEMA_VERSION = 1
+const CURRENT_SCHEMA_VERSION = 2
 
 export function runMigrations(db: Database.Database): void {
   // 마이그레이션 테이블 포함한 초기 스키마 실행
@@ -53,15 +53,27 @@ export function runMigrations(db: Database.Database): void {
     | { version: number }
     | undefined
 
-  const currentVersion = versionRow?.version ?? 0
+  let currentVersion = versionRow?.version ?? 0
+  const previousVersion = currentVersion
 
   // 버전별 마이그레이션 실행 (향후 컬럼 추가 시 여기에 추가)
   if (currentVersion < 1) {
     // 버전 1: 초기 스키마 (이미 위에서 생성됨)
     db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(1)
+    currentVersion = 1
   }
 
-  if (currentVersion < CURRENT_SCHEMA_VERSION) {
-    console.log(`[DB] 마이그레이션 완료: v${currentVersion} → v${CURRENT_SCHEMA_VERSION}`)
+  if (currentVersion < 2) {
+    // 버전 2: 근무시간 자동 공제 on/off 설정 추가
+    db.exec(
+      `ALTER TABLE app_config
+       ADD COLUMN break_deduction_enabled INTEGER NOT NULL DEFAULT 1`
+    )
+    db.prepare('UPDATE schema_version SET version = 2').run()
+    currentVersion = 2
+  }
+
+  if (previousVersion < CURRENT_SCHEMA_VERSION) {
+    console.log(`[DB] 마이그레이션 완료: v${previousVersion} → v${CURRENT_SCHEMA_VERSION}`)
   }
 }

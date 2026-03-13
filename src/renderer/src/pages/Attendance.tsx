@@ -14,6 +14,7 @@ export default function Attendance() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<AttendanceType[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [breakDeductionEnabled, setBreakDeductionEnabled] = useState(true)
 
   // 저장 폼 상태 (직원별) — 항상 모든 직원의 폼이 존재해야 버그 방지
   const [forms, setForms] = useState<
@@ -29,9 +30,10 @@ export default function Attendance() {
   const loadAll = useCallback(async (date: string) => {
     setIsLoading(true)
     try {
-      const [empResult, attResult] = await Promise.all([
+      const [empResult, attResult, configResult] = await Promise.all([
         window.api.employee.list(true),
-        window.api.attendance.listByDate(date)
+        window.api.attendance.listByDate(date),
+        window.api.config.get()
       ])
 
       const emps = empResult.success ? (empResult.data ?? []) : employees
@@ -39,6 +41,9 @@ export default function Attendance() {
 
       if (empResult.success) setEmployees(emps)
       setAttendances(atts)
+      if (configResult.success && configResult.data) {
+        setBreakDeductionEnabled(configResult.data.breakDeductionEnabled)
+      }
 
       // 모든 직원의 폼을 직원별 defaultStart로 초기화한 뒤
       // 근무기록이 있는 직원만 저장된 값으로 덮어씌움
@@ -275,23 +280,24 @@ export default function Attendance() {
                     )}
                   </div>
 
-                  {/* 휴게 공제 안내 — 공제 전 원시 근무시간 기준으로 체크 */}
-                  {(() => {
-                    const [sh, sm] = form.startTime.split(':').map(Number)
-                    const [eh, em] = form.endTime.split(':').map(Number)
-                    let start = sh * 60 + sm
-                    let end = eh * 60 + em
-                    if (end <= start) end += 24 * 60
-                    const rawHours = (end - start) / 60
+                  {/* 휴게 공제 안내 — 자동 공제 설정이 켜진 경우에만 노출 */}
+                  {breakDeductionEnabled &&
+                    (() => {
+                      const [sh, sm] = form.startTime.split(':').map(Number)
+                      const [eh, em] = form.endTime.split(':').map(Number)
+                      let startMinutes = sh * 60 + sm
+                      let endMinutes = eh * 60 + em
+                      if (endMinutes <= startMinutes) endMinutes += 24 * 60
+                      const rawHours = (endMinutes - startMinutes) / 60
 
-                    if (rawHours >= 8) {
-                      return <span className="text-xs text-amber-500">(1시간 공제)</span>
-                    }
-                    if (rawHours >= 4) {
-                      return <span className="text-xs text-amber-500">(30분 공제)</span>
-                    }
-                    return null
-                  })()}
+                      if (rawHours >= 8) {
+                        return <span className="text-xs text-amber-500">(1시간 공제)</span>
+                      }
+                      if (rawHours >= 4) {
+                        return <span className="text-xs text-amber-500">(30분 공제)</span>
+                      }
+                      return null
+                    })()}
 
                   {/* 액션 버튼 */}
                   <div className="ml-auto flex items-center gap-2">
